@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <title>B Game</title>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+  </head>
+  <body>
+    <canvas id="myCanvas" width="480" height="320" style="border: solid red 1px;"></canvas>
+    <div id="dev_console">
+      <h1 id="xCounter">
+
+      </h1>
+      <h1 id="DXCounter">
+
+      </h1>
+      <h1 id="yCounter">
+
+      </h1>
+      <h1 id="DYCounter">
+
+      </h1>
+      <h1 id="lastKey">
+
+      </h1>
+    </div>
+    <input type="range" min="1" max="100" value="10" class="slider" id="myRange">
+    <input type="color" id="playerColor" value="#ffff00">
+    <input type="checkbox" id="noClipCheckbox" value="#ffff00" checked>
+
+    <script>
+
+    var canvas = document.getElementById("myCanvas");
+    var ctx = canvas.getContext("2d");
+    var intro = true;
+    var introText = "BGAME";
+    var playerX = canvas.width/2;
+    var playerY = canvas.height-30;
+    var playerDX = 2;
+    var playerDY = -2;
+    var playerShape = "Text";
+    var playerSize = 10;
+    var playerColor = "#ffff00";
+    var playerSpeed = 50;
+    var gravity = 2;
+    var lastKey = null;
+    var mapColor = "#444444";
+    var platformThickness = 10; 
+    var floorX = 0;
+    var floorY = canvas.height - 10;
+    var rightPressed = false;
+    var leftPressed = false;
+    var jumpPressed = false;
+    var jumpTimer = 0;
+
+    function drawMap(){
+      // Draw the Floor
+
+      function drawBase(){
+        ctx.beginPath();
+        ctx.fillStyle = mapColor;
+        ctx.rect(floorX, floorY, canvas.width, platformThickness);
+        ctx.fill();
+        ctx.closePath();
+      }
+      function drawPlatform(){
+        ctx.beginPath();
+        ctx.fillStyle = mapColor;
+        ctx.rect(canvas.width/3, floorY/1.2, canvas.width/3, platformThickness);
+        ctx.fill();
+        ctx.closePath();
+      }
+      return drawBase(), drawPlatform();
+    }
+
+
+    function drawPlayer() {
+        ctx.beginPath();
+        playerSize = document.getElementById("myRange").value;
+        playerColor = document.getElementById("playerColor").value;
+        ctx.fillStyle = playerColor;
+
+        if(playerShape == "Text"){
+          ctx.font = playerSize*5 + 'px serif';
+          ctx.fillText(introText, playerX, playerY);
+          ctx.fill();
+          ctx.closePath();
+        } else if(playerShape == "Ball") {
+          ctx.arc(playerX, playerY, playerSize, 0, Math.PI*2);
+          ctx.fill();
+          ctx.closePath();
+        }
+    }
+
+    // Render, draw, build
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawPlayer();
+        if(intro==true){
+          // Welcome screen bounce
+          playerX += playerDX;
+          
+          if(playerX>canvas.width + -235){
+              playerDX=-2;
+          } else if(playerX<=0) {
+              playerDX = 2;
+          }
+          playerY += playerDY;
+          if(playerY<=35){
+              playerDY = 2;
+          } else if (playerY>canvas.height){
+          playerDY = -2;
+          }
+        } else {
+          // Regular gameplay loop STARTS HERE!!
+          drawMap();
+
+          // Player movement
+          // INPUTS
+
+          // Right and left
+          console.log(playerSpeed);
+          if(rightPressed){
+            playerDX = parseInt(playerSpeed) / parseInt(playerSize);
+          }
+          if(leftPressed){
+            playerDX = -1*parseInt(playerSpeed) / parseInt(playerSize);
+          }
+          // Jump
+          if(jumpPressed){
+            // unless noclip is enabled
+            if(!document.getElementById("noClipCheckbox").checked){
+              console.log("idkbruh");
+            }
+            //  if they're not out of bounds (too high)
+            if(playerY>0){
+              // if they didn't just jump (timeout should be 0)
+              if(jumpTimer<=0){
+                jumpTimer = 20;
+                playerDY = -50;
+              }
+            }
+          }
+          if(jumpTimer > 0){
+            jumpTimer = jumpTimer-1;
+          }
+
+          // EFFECTS
+          
+          // Collision detection: If the player isn't falling through the floor...
+          var playerBaseY = parseInt(playerY) + parseInt(playerSize);
+          if(playerBaseY<floorY){
+            
+            // add gravity
+            playerDY = playerDY + gravity;
+          }
+
+          // Include velocity 
+          // ... if player X is within canvas X & Y
+          if(playerX>0 && playerX<canvas.width){
+            playerX = playerX + playerDX;
+          } else {
+            // ... otherwise, bounce off edge
+            if(playerX<0){
+              playerX=playerX+2;
+            }else{
+              playerX=playerX-1;
+            }
+
+          }
+   
+          playerY = playerY + playerDY;
+
+          // Decay (Slow down over time)...
+          playerDX = Math.round(playerDX/3);
+          playerDY = Math.round(playerDY/3);
+        }
+        // End of welcome screen bounce
+
+      document.getElementById("xCounter").innerText = playerX;
+      document.getElementById("DXCounter").innerText = playerDX;
+
+      document.getElementById("yCounter").innerText = playerY;
+      document.getElementById("DYCounter").innerText = playerDY;
+
+      document.getElementById("lastKey").innerText = lastKey;
+    }
+
+    function startGame(){
+      intro = false;
+      playerShape = "Ball";
+    }
+
+    function keyDownHandler(e) {
+      if(intro==true){
+        startGame();
+      }
+      lastKey = e.key;
+      if(e.key == "Right" || e.key == "ArrowRight" || e.key == "d") {
+              rightPressed = true;
+          }
+          else if(e.key == "Left" || e.key == "ArrowLeft" || e.key == "a") {
+              leftPressed = true;
+          }
+          else if(e.keyCode == 0 || e.keyCode == 32) {
+              jumpPressed = true;
+          }
+    }
+
+    function keyUpHandler(e) {
+      if(e.key == "Right" || e.key == "ArrowRight" || e.key == "d") {
+          rightPressed = false;
+      }
+      else if(e.key == "Left" || e.key == "ArrowLeft" || e.key == "a") {
+          leftPressed = false;
+      }
+      else if(e.keyCode == 0 || e.keyCode == 32) {
+              jumpPressed = false;
+          }
+    }
+
+    // document.addEventListener('keydown', event => {
+    //   if(intro==true){
+    //     startGame();
+    //   }
+    //   lastKey = event.keyCode;
+    //   // Movement Left
+    //   if(event.keyCode==65 || event.keyCode==37){
+    //     playerX=playerX-5;
+    //   }
+    //   // Right
+    //   if(event.keyCode==68 || event.keyCode==39){
+    //     playerX=playerX+5;
+    //   }
+    //   // Jump
+    //   if(event.keyCode==32){
+    //     playerY=playerY-50;
+    //   }
+    // });
+
+
+
+    document.addEventListener("keydown", keyDownHandler, false);
+    document.addEventListener("keyup", keyUpHandler, false);
+    setInterval(draw, 10);
+    </script>
+  </body>
+</html>
